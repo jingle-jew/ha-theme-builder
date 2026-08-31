@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 — 2026-08-31
+
+- Ajout d’un arrière-plan photo par URL ou téléversement local, avec aperçu et portées Base/clair/sombre.
+- Validation des images JPEG, PNG, GIF et WebP avant leur stockage dans `config/www/ha_theme_builder/backgrounds/`.
+
 ## 0.1.1 — 2026-08-31
 
 - Ajout du schéma explicite pour une intégration uniquement configurable par config entry.

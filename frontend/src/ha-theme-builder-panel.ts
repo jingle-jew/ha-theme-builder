@@ -17,6 +17,11 @@ import type {
 import { appStyles } from "./styles/app-styles";
 import { icon } from "./utils/icons";
 import {
+  backgroundImageUrl,
+  backgroundImageValue,
+  isSupportedBackgroundUrl,
+} from "./utils/background";
+import {
   changedCount,
   cloneTheme,
   modeValues,
@@ -28,6 +33,21 @@ import {
 
 const DRAFT_KEY = "ha-theme-builder:draft:v1";
 const CUSTOM_PROPERTY = /^[a-z][a-z0-9_-]*$/;
+const MAX_BACKGROUND_BYTES = 8 * 1024 * 1024;
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Lecture de l’image impossible."));
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const content = result.split(",", 2)[1];
+      if (!content) reject(new Error("Lecture de l’image impossible."));
+      else resolve(content);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function themeFromPreset(index = 1): ThemeDocument {
   const preset = THEME_PRESETS[index] ?? THEME_PRESETS[0];
@@ -57,13 +77,15 @@ export class HAThemeBuilderPanel extends LitElement {
   @state() private expert = false;
   @state() private showLegacy = false;
   @state() private editorOpen = false;
-  @state() private modal: "presets" | "custom" | "library" | null = null;
+  @state() private modal: "presets" | "custom" | "library" | "background" | null = null;
   @state() private customName = "";
   @state() private customValue = "";
   @state() private dirty = false;
   @state() private toast?: { message: string; error?: boolean };
   @state() private savedThemes: string[] = [];
   @state() private libraryLoading = false;
+  @state() private backgroundUrl = "";
+  @state() private backgroundUploading = false;
 
   private history: ThemeDocument[] = [cloneTheme(this.theme)];
   private historyIndex = 0;
@@ -202,6 +224,59 @@ export class HAThemeBuilderPanel extends LitElement {
     this.customValue = "";
     this.modal = null;
     this.notify(`Variable --${id} ajoutée.`);
+  }
+
+  private openBackground(): void {
+    const values = this.activeMode === "base"
+      ? this.theme.values
+      : resolvedValues(this.theme, this.activeMode);
+    this.backgroundUrl = backgroundImageUrl(values["lovelace-background"]);
+    this.modal = "background";
+  }
+
+  private applyBackgroundUrl(): void {
+    const url = this.backgroundUrl.trim();
+    if (!isSupportedBackgroundUrl(url)) {
+      this.notify("Utilise une URL http(s) ou un chemin Home Assistant commençant par /local/.", true);
+      return;
+    }
+    this.commit(setThemeValue(this.theme, this.activeMode, "lovelace-background", backgroundImageValue(url)));
+    this.modal = null;
+    this.notify("Arrière-plan photo appliqué.");
+  }
+
+  private removeBackground(): void {
+    this.commit(setThemeValue(this.theme, this.activeMode, "lovelace-background", undefined));
+    this.backgroundUrl = "";
+    this.modal = null;
+    this.notify(this.activeMode === "base" ? "Arrière-plan photo retiré." : "Arrière-plan retiré pour ce mode.");
+  }
+
+  private async uploadBackground(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file || !this.hass?.callWS) return;
+    if (file.size > MAX_BACKGROUND_BYTES) {
+      this.notify("L’image doit faire 8 Mo ou moins.", true);
+      return;
+    }
+    this.backgroundUploading = true;
+    try {
+      const content = await fileToBase64(file);
+      const result = await this.hass.callWS<{ url: string }>({
+        type: "ha_theme_builder/upload_background",
+        content,
+      });
+      this.backgroundUrl = result.url;
+      this.commit(setThemeValue(this.theme, this.activeMode, "lovelace-background", backgroundImageValue(result.url)));
+      this.modal = null;
+      this.notify("Photo téléversée et appliquée.");
+    } catch (error) {
+      this.notify(error instanceof Error ? error.message : "Téléversement impossible.", true);
+    } finally {
+      this.backgroundUploading = false;
+    }
   }
 
   private async importFile(event: Event): Promise<void> {
@@ -354,6 +429,7 @@ export class HAThemeBuilderPanel extends LitElement {
   private renderPreview() {
     const previewMode = this.activeMode === "dark" ? "dark" : "light";
     const values = this.activeMode === "base" ? this.theme.values : resolvedValues(this.theme, previewMode);
+    const hasBackground = Boolean(backgroundImageUrl(values["lovelace-background"]));
     return html`
       <section class="preview-pane">
         <div class="preview-toolbar">
@@ -361,6 +437,7 @@ export class HAThemeBuilderPanel extends LitElement {
           <div class="preview-tabs">
             ${(["card", "dashboard", "system"] as const).map((kind) => html`<button class=${`segment-button ${this.previewKind === kind ? "active" : ""}`} @click=${() => { this.previewKind = kind; }}>${icon(kind === "card" ? "card" : kind === "dashboard" ? "dashboard" : "settings", 14)}<span>${kind === "card" ? "Cartes" : kind === "dashboard" ? "Dashboard" : "Système"}</span></button>`)}
           </div>
+          <button class=${`button background-action ${hasBackground ? "active" : ""}`} @click=${this.openBackground}>${icon("image", 15)}<span>Arrière-plan</span></button>
           <div class="device-tabs">
             ${(["desktop", "tablet", "mobile"] as const).map((device) => html`<button class=${`segment-button ${this.previewDevice === device ? "active" : ""}`} title=${device} @click=${() => { this.previewDevice = device; }}>${icon(device, 15)}</button>`)}
           </div>
@@ -388,6 +465,35 @@ export class HAThemeBuilderPanel extends LitElement {
             <div class="field"><label>Valeur CSS</label><input placeholder="#ffd166 ou var(--accent-color)" .value=${this.customValue} @input=${(event: Event) => { this.customValue = (event.target as HTMLInputElement).value; }} /></div>
           </div>
           <div class="dialog-actions"><button class="button ghost" @click=${() => { this.modal = null; }}>Annuler</button><button class="button primary" @click=${this.addCustomVariable}>${icon("plus", 15)} Ajouter</button></div>
+        </section>
+      </div>
+    `;
+    if (this.modal === "background") return html`
+      <div class="modal-backdrop" @click=${(event: Event) => { if (event.target === event.currentTarget && !this.backgroundUploading) this.modal = null; }}>
+        <section class="dialog background-dialog" role="dialog" aria-modal="true" aria-label="Arrière-plan photo">
+          <div class="dialog-head"><h2>Arrière-plan photo</h2><button class="icon-button" ?disabled=${this.backgroundUploading} @click=${() => { this.modal = null; }}>${icon("close", 18)}</button></div>
+          <div class="dialog-body">
+            ${this.backgroundUrl ? html`<div class="background-preview"><img src=${this.backgroundUrl} alt="Aperçu de l’arrière-plan" /></div>` : html`<div class="background-placeholder">${icon("image", 28)}<span>Aucune photo pour cette portée</span></div>`}
+            ${this.hass ? html`
+              <label class=${`button background-upload ${this.backgroundUploading ? "disabled" : ""}`}>
+                ${icon("upload", 16)} ${this.backgroundUploading ? "Téléversement…" : "Choisir une photo"}
+                <input class="hidden-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" ?disabled=${this.backgroundUploading} @change=${this.uploadBackground} />
+              </label>
+              <div class="field-hint background-hint">JPEG, PNG, GIF ou WebP · 8 Mo maximum. La photo sera copiée dans <code>/config/www/ha_theme_builder/backgrounds/</code>.</div>
+              <div class="or-divider"><span>ou</span></div>
+            ` : html`<div class="field-hint background-hint">Dans l’aperçu local, utilise une URL. Le téléversement de fichier est disponible depuis le panneau Home Assistant.</div>`}
+            <div class="field background-url-field">
+              <label>URL de l’image</label>
+              <input type="url" placeholder="https://… ou /local/…" .value=${this.backgroundUrl} @input=${(event: Event) => { this.backgroundUrl = (event.target as HTMLInputElement).value; }} @keydown=${(event: KeyboardEvent) => { if (event.key === "Enter") this.applyBackgroundUrl(); }} />
+            </div>
+            <div class="field-hint">Le réglage s’applique à la portée active : <strong>${this.activeMode === "base" ? "Base" : this.activeMode === "light" ? "Mode clair" : "Mode sombre"}</strong>.</div>
+          </div>
+          <div class="dialog-actions">
+            <button class="button danger" ?disabled=${this.backgroundUploading || !backgroundImageUrl(modeValues(this.theme, this.activeMode)["lovelace-background"])} @click=${this.removeBackground}>${icon("trash", 15)} Retirer</button>
+            <span class="dialog-spacer"></span>
+            <button class="button ghost" ?disabled=${this.backgroundUploading} @click=${() => { this.modal = null; }}>Annuler</button>
+            <button class="button primary" ?disabled=${this.backgroundUploading} @click=${this.applyBackgroundUrl}>Appliquer l’URL</button>
+          </div>
         </section>
       </div>
     `;

@@ -4,7 +4,7 @@ from pathlib import Path
 
 DOMAIN = "ha_theme_builder"
 NAME = "HA Theme Builder"
-VERSION = "0.1.1"
+VERSION = "0.1.4"
 
 PANEL_URL_PATH = "ha-theme-builder"
 PANEL_COMPONENT = "ha-theme-builder-panel"
@@ -17,3 +17,6 @@ FRONTEND_DIR = Path(__file__).parent / "frontend"
 
 THEMES_DIRECTORY = "themes"
 THEMES_FILENAME = "ha_theme_builder.yaml"
+
+BACKGROUNDS_DIRECTORY = ("www", "ha_theme_builder", "backgrounds")
+BACKGROUNDS_URL_PATH = "/local/ha_theme_builder/backgrounds"

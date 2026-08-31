@@ -12,6 +12,7 @@ Un constructeur de thèmes entièrement graphique pour Home Assistant. Il s’in
 - recherche instantanée, catégories, mode expert et filtre legacy ;
 - ajout graphique des variables dynamiques, par exemple `state-light-reading-color` ;
 - blur/frosted natif avec `ha-card-background` et `ha-card-backdrop-filter` ;
+- arrière-plan photo par URL ou téléversement local, avec variantes Base/clair/sombre ;
 - aperçus dédiés aux cartes dashboard, à un dashboard complet et aux pages système ;
 - cadres desktop, tablette et mobile ;
 - préréglages, annuler/rétablir, brouillon local, import, copie et export YAML ;
@@ -65,6 +66,12 @@ Home Assistant applique directement `--ha-card-backdrop-filter` sur `ha-card`. L
 - la bordure, le rayon et l’ombre de la carte.
 
 Pour rendre le blur visible, l’arrière-plan de la carte doit être partiellement transparent et le dashboard doit avoir une image, un dégradé ou des éléments colorés derrière les cartes.
+
+## Arrière-plan photo
+
+Le bouton **Arrière-plan** de la barre d’aperçu accepte une URL `http(s)`, un chemin Home Assistant `/local/…` ou un fichier JPEG, PNG, GIF ou WebP de 8 Mo maximum. Les fichiers téléversés sont validés puis enregistrés dans `config/www/ha_theme_builder/backgrounds/`. Le thème conserve une référence `/local/ha_theme_builder/backgrounds/…`, donc la photo reste disponible après un redémarrage.
+
+Comme les autres variables, la photo peut être commune (**Base**) ou différente en mode clair et sombre. Le YAML généré utilise la variable native `lovelace-background`.
 
 ## Releases HACS
 

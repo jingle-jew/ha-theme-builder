@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
+from .background_store import BackgroundFileStore
 from .const import (
     DOMAIN,
     FRONTEND_DIR,
@@ -47,6 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     data.setdefault("store", ThemeFileStore(hass))
+    data.setdefault("background_store", BackgroundFileStore(hass))
 
     if not data.get(_STATIC_REGISTERED):
         await hass.http.async_register_static_paths(

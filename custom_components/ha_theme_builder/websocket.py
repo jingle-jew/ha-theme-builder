@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 from typing import Any
 
@@ -10,6 +12,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
+from .background_store import BackgroundFileStore
 from .const import DOMAIN
 from .theme_store import ThemeFileStore
 
@@ -17,10 +20,29 @@ _VARIABLE_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 _MAX_VARIABLES = 1200
 _MAX_VALUE_LENGTH = 2000
 _MAX_NAME_LENGTH = 80
+_MAX_BACKGROUND_BYTES = 8 * 1024 * 1024
+_MAX_BACKGROUND_BASE64_LENGTH = ((_MAX_BACKGROUND_BYTES + 2) // 3) * 4
 
 
 def _store(hass: HomeAssistant) -> ThemeFileStore:
     return hass.data[DOMAIN]["store"]
+
+
+def _background_store(hass: HomeAssistant) -> BackgroundFileStore:
+    return hass.data[DOMAIN]["background_store"]
+
+
+def _image_extension(content: bytes) -> str | None:
+    """Identify supported browser image formats from their file signature."""
+    if content.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if content.startswith((b"GIF87a", b"GIF89a")):
+        return "gif"
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "webp"
+    return None
 
 
 def _normalize_name(value: Any) -> str | None:
@@ -145,6 +167,53 @@ async def websocket_save_theme(
 
 @websocket_api.websocket_command(
     {
+        vol.Required("type"): "ha_theme_builder/upload_background",
+        vol.Required("content"): str,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_upload_background(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Validate and store a photo in Home Assistant's public local directory."""
+    encoded = msg.get("content", "")
+    if not encoded or len(encoded) > _MAX_BACKGROUND_BASE64_LENGTH:
+        connection.send_error(
+            msg["id"],
+            "background_too_large",
+            "Background image must be 8 MB or smaller",
+        )
+        return
+    try:
+        content = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError):
+        connection.send_error(msg["id"], "invalid_background", "Invalid background image data")
+        return
+    if len(content) > _MAX_BACKGROUND_BYTES:
+        connection.send_error(
+            msg["id"],
+            "background_too_large",
+            "Background image must be 8 MB or smaller",
+        )
+        return
+    extension = _image_extension(content)
+    if extension is None:
+        connection.send_error(
+            msg["id"],
+            "unsupported_background",
+            "Use a JPEG, PNG, GIF or WebP image",
+        )
+        return
+
+    url = await _background_store(hass).async_save(content, extension)
+    connection.send_result(msg["id"], {"url": url})
+
+
+@websocket_api.websocket_command(
+    {
         vol.Required("type"): "ha_theme_builder/delete",
         vol.Required("name"): str,
     }
@@ -173,4 +242,5 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_list_themes)
     websocket_api.async_register_command(hass, websocket_get_theme)
     websocket_api.async_register_command(hass, websocket_save_theme)
+    websocket_api.async_register_command(hass, websocket_upload_background)
     websocket_api.async_register_command(hass, websocket_delete_theme)

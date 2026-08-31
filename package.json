@@ -1,6 +1,6 @@
 {
   "name": "ha-theme-builder",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "A completely graphical Home Assistant theme builder.",
