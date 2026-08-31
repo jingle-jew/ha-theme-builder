@@ -1,0 +1,19 @@
+{
+  "domain": "ha_theme_builder",
+  "name": "HA Theme Builder",
+  "version": "0.1.0",
+  "documentation": "https://github.com/jingle-jew/ha-theme-builder",
+  "issue_tracker": "https://github.com/jingle-jew/ha-theme-builder/issues",
+  "codeowners": [
+    "@jingle-jew"
+  ],
+  "config_flow": true,
+  "single_config_entry": true,
+  "dependencies": [
+    "frontend",
+    "http",
+    "panel_custom"
+  ],
+  "integration_type": "service",
+  "requirements": []
+}

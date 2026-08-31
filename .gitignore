@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.coverage/
+coverage/
+*.py[cod]
+__pycache__/
+.pytest_cache/
+.DS_Store
