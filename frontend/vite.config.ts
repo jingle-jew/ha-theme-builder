@@ -8,7 +8,7 @@ export default defineConfig({
       new URL("../custom_components/ha_theme_builder/frontend", import.meta.url),
     ),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false,
     lib: {
       entry: fileURLToPath(new URL("./src/ha-theme-builder-panel.ts", import.meta.url)),
       formats: ["es"],

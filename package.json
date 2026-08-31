@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "description": "A completely graphical Home Assistant theme builder.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jingle-jew/ha-theme-builder.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite --config frontend/vite.config.ts",
     "build": "vite build --config frontend/vite.config.ts",

@@ -2,7 +2,7 @@
 
 Un constructeur de thèmes entièrement graphique pour Home Assistant. Il s’installe comme intégration custom via HACS, ajoute un panneau **Theme Builder** à la sidebar et permet d’ajuster les variables du thème sans écrire de YAML.
 
-> Le projet est en développement local. Il n’est pas encore publié sur GitHub ni proposé dans HACS.
+**Dépôt HACS custom :** [jingle-jew/ha-theme-builder](https://github.com/jingle-jew/ha-theme-builder)
 
 ## Ce qui fonctionne
 
@@ -12,7 +12,7 @@ Un constructeur de thèmes entièrement graphique pour Home Assistant. Il s’in
 - recherche instantanée, catégories, mode expert et filtre legacy ;
 - ajout graphique des variables dynamiques, par exemple `state-light-reading-color` ;
 - blur/frosted natif avec `ha-card-background` et `ha-card-backdrop-filter` ;
-- aperçus fidèles des cartes dashboard, d’un dashboard complet et des pages système ;
+- aperçus dédiés aux cartes dashboard, à un dashboard complet et aux pages système ;
 - cadres desktop, tablette et mobile ;
 - préréglages, annuler/rétablir, brouillon local, import, copie et export YAML ;
 - sauvegarde admin dans `config/themes/ha_theme_builder.yaml`, écriture atomique puis rechargement des thèmes.
@@ -42,9 +42,7 @@ npm run catalog:sync
 
 ## Installation Home Assistant
 
-Une fois le dépôt publié et une release créée :
-
-1. Dans HACS, ajouter le dépôt comme **Custom repository**, catégorie **Integration**.
+1. Dans HACS, ajouter `https://github.com/jingle-jew/ha-theme-builder` comme **Custom repository**, catégorie **Integration**.
 2. Installer **HA Theme Builder** et redémarrer Home Assistant.
 3. Dans **Paramètres → Appareils et services → Ajouter une intégration**, chercher **HA Theme Builder**.
 4. Vérifier que la configuration charge les thèmes d’un dossier :
@@ -70,7 +68,7 @@ Pour rendre le blur visible, l’arrière-plan de la carte doit être partiellem
 
 ## Releases HACS
 
-`hacs.json` utilise `zip_release: true`. Une release GitHub doit contenir l’asset exact `ha-theme-builder-hacs.zip`, dont la racine est le contenu de l’intégration. Le workflow de release le produit automatiquement, avec une seconde archive `ha-theme-builder.zip` destinée à l’installation manuelle sous `custom_components/`.
+`hacs.json` utilise `zip_release: true`. Chaque release GitHub contient l’asset exact `ha-theme-builder-hacs.zip`, dont la racine est le contenu de l’intégration. Le workflow de release produit aussi `ha-theme-builder.zip` pour une installation manuelle sous `custom_components/`.
 
 ## Licence
 
