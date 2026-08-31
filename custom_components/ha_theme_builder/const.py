@@ -4,7 +4,7 @@ from pathlib import Path
 
 DOMAIN = "ha_theme_builder"
 NAME = "HA Theme Builder"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 PANEL_URL_PATH = "ha-theme-builder"
 PANEL_COMPONENT = "ha-theme-builder-panel"

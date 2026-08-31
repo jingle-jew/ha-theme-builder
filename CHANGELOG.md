@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-08-31
+
+- Ajout du schéma explicite pour une intégration uniquement configurable par config entry.
+- Ajout de l’IoT class `calculated` requise par hassfest.
+- Ajout des icônes de marque locales utilisées par HACS et Home Assistant.
+
 ## 0.1.0 — 2026-08-31
 
 - Premier éditeur graphique avec 757 variables concrètes Home Assistant.
