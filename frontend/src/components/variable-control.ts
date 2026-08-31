@@ -27,7 +27,27 @@ export class VariableControl extends LitElement {
     .control:hover { background: var(--tb-panel-hover, #fafbfc); }
     .heading { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 11px; }
     .meta { min-width: 0; flex: 1; }
-    .label { font-size: 13px; line-height: 18px; font-weight: 650; color: var(--tb-text, #1d2433); }
+    .label-row { display: flex; align-items: center; gap: 6px; }
+    .label { min-width: 0; font-size: 13px; line-height: 18px; font-weight: 650; color: var(--tb-text, #1d2433); }
+    .info { position: relative; display: inline-flex; flex: 0 0 auto; }
+    .info-trigger {
+      display: grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 1px solid var(--tb-input-border, #d9dde5);
+      border-radius: 50%; outline: 0; color: var(--tb-muted, #7b8495); background: var(--tb-panel, #fff); cursor: help;
+      font: 700 10px/1 ui-sans-serif, system-ui, sans-serif; transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+    .info-trigger:hover, .info-trigger:focus-visible {
+      color: var(--tb-accent, #6558d9); border-color: var(--tb-accent, #6558d9); background: var(--tb-accent-soft, #eeecff);
+    }
+    .tooltip {
+      position: absolute; z-index: 5; top: calc(100% + 8px); left: -8px; width: max-content; max-width: min(260px, calc(100vw - 32px));
+      padding: 8px 10px; border-radius: 8px; color: #fff; background: #252b38; box-shadow: 0 8px 24px rgba(20, 24, 40, .2);
+      font: 10px/1.45 var(--tb-font, Inter, system-ui, sans-serif); font-weight: 450; pointer-events: none;
+      opacity: 0; visibility: hidden; transform: translateY(-3px); transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+    }
+    .tooltip::before {
+      content: ""; position: absolute; bottom: 100%; left: 11px; border: 5px solid transparent; border-bottom-color: #252b38;
+    }
+    .info:hover .tooltip, .info:focus-within .tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
     .key {
       margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       color: var(--tb-muted, #7b8495); font: 10.5px/15px ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -183,7 +203,13 @@ export class VariableControl extends LitElement {
       <section class="control">
         <div class="heading">
           <div class="meta">
-            <div class="label">${this.definition.label}${this.definition.legacy ? html`<span class="badge">legacy</span>` : nothing}</div>
+            <div class="label-row">
+              <div class="label">${this.definition.label}${this.definition.legacy ? html`<span class="badge">legacy</span>` : nothing}</div>
+              <span class="info">
+                <button class="info-trigger" type="button" aria-label=${`Description de ${this.definition.label}`} aria-describedby="variable-description">i</button>
+                <span class="tooltip" id="variable-description" role="tooltip">${this.definition.description}</span>
+              </span>
+            </div>
             <div class="key">--${this.definition.id}</div>
           </div>
           <button class="reset" ?disabled=${!this.overridden} title="Réinitialiser cette valeur" @click=${() => this.emitValue(undefined)}>
