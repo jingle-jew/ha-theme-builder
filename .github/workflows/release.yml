@@ -1,8 +1,9 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -18,9 +19,32 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
       - run: npm run release:zip
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/ha-theme-builder-hacs.zip
-            dist/ha-theme-builder.zip
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --verify-tag \
+              --draft \
+              --generate-notes \
+              --title "HA Theme Builder $RELEASE_TAG"
+          fi
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release upload "$RELEASE_TAG"
+          dist/ha-theme-builder-hacs.zip
+          dist/ha-theme-builder.zip
+          --clobber
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release edit "$RELEASE_TAG" --draft=false --latest

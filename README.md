@@ -70,6 +70,8 @@ Pour rendre le blur visible, l’arrière-plan de la carte doit être partiellem
 
 `hacs.json` utilise `zip_release: true`. Chaque release GitHub contient l’asset exact `ha-theme-builder-hacs.zip`, dont la racine est le contenu de l’intégration. Le workflow de release produit aussi `ha-theme-builder.zip` pour une installation manuelle sous `custom_components/`.
 
+Une release est déclenchée par le push d’un tag `vX.Y.Z`. Le workflow vérifie que le tag, `package.json` et le manifeste Home Assistant ont la même version, construit les archives sur une release brouillon, puis la publie seulement après le téléversement des deux assets.
+
 ## Licence
 
 MIT
