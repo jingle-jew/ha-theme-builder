@@ -2,26 +2,47 @@ import type { ThemeDocument } from "../models/types";
 
 export const CARD_MOD_THEME_KEY = "card-mod-theme";
 export const CARD_MOD_GRID_SECTION_KEY = "card-mod-grid-section";
+export const CARD_MOD_VIEW_YAML_KEY = "card-mod-view-yaml";
 
-const SECTION_BLUR_START = "/* ha-theme-builder: section-background-blur:start */";
-const SECTION_BLUR_END = "/* ha-theme-builder: section-background-blur:end */";
+const SECTION_BLUR_CSS_START = "/* ha-theme-builder: section-background-blur:start */";
+const SECTION_BLUR_CSS_END = "/* ha-theme-builder: section-background-blur:end */";
+const SECTION_BLUR_YAML_START = "# ha-theme-builder: section-background-blur:start";
+const SECTION_BLUR_YAML_END = "# ha-theme-builder: section-background-blur:end";
 
-const SECTION_BLUR_STYLE = `${SECTION_BLUR_START}
+const SECTION_BLUR_STYLE = `${SECTION_BLUR_CSS_START}
 .section {
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
-${SECTION_BLUR_END}`;
+${SECTION_BLUR_CSS_END}`;
+
+const SECTION_BLUR_VIEW_RULE = `${SECTION_BLUR_YAML_START}
+"hui-sections-view:not(.ha-theme-builder-section-blur-disabled)$": |
+${SECTION_BLUR_STYLE.split("\n").map((line) => `  ${line}`).join("\n")}
+${SECTION_BLUR_YAML_END}`;
 
 function cloneTheme(theme: ThemeDocument): ThemeDocument {
   return JSON.parse(JSON.stringify(theme)) as ThemeDocument;
 }
 
-function removeGeneratedSectionBlur(style: string): string {
-  const start = style.indexOf(SECTION_BLUR_START);
-  const end = style.indexOf(SECTION_BLUR_END, start + SECTION_BLUR_START.length);
-  if (start < 0 || end < 0) return style;
-  return `${style.slice(0, start)}${style.slice(end + SECTION_BLUR_END.length)}`.trim();
+function removeGeneratedBlock(style: string, startMarker: string, endMarker: string): string {
+  let result = style;
+  let start = result.indexOf(startMarker);
+  while (start >= 0) {
+    const end = result.indexOf(endMarker, start + startMarker.length);
+    if (end < 0) break;
+    result = `${result.slice(0, start)}${result.slice(end + endMarker.length)}`.trim();
+    start = result.indexOf(startMarker);
+  }
+  return result.trim();
+}
+
+function removeLegacyGridSectionBlur(style: string): string {
+  return removeGeneratedBlock(style, SECTION_BLUR_CSS_START, SECTION_BLUR_CSS_END);
+}
+
+function removeGeneratedViewBlur(style: string): string {
+  return removeGeneratedBlock(style, SECTION_BLUR_YAML_START, SECTION_BLUR_YAML_END);
 }
 
 function hasOtherCardModRules(values: Record<string, string>): boolean {
@@ -29,13 +50,18 @@ function hasOtherCardModRules(values: Record<string, string>): boolean {
 }
 
 export function hasSectionBackgroundBlur(theme: ThemeDocument): boolean {
-  return theme.values[CARD_MOD_GRID_SECTION_KEY]?.includes(SECTION_BLUR_START) ?? false;
+  return Boolean(
+    theme.values[CARD_MOD_VIEW_YAML_KEY]?.includes(SECTION_BLUR_YAML_START)
+    || theme.values[CARD_MOD_GRID_SECTION_KEY]?.includes(SECTION_BLUR_CSS_START),
+  );
 }
 
 export function syncCardModThemeName(theme: ThemeDocument): ThemeDocument {
   if (!hasSectionBackgroundBlur(theme)) return theme;
   const expectedName = theme.name.trim() || "Mon thème";
-  if (theme.values[CARD_MOD_THEME_KEY] === expectedName) return theme;
+  const legacyRule = theme.values[CARD_MOD_GRID_SECTION_KEY]?.includes(SECTION_BLUR_CSS_START) ?? false;
+  if (theme.values[CARD_MOD_THEME_KEY] === expectedName && !legacyRule) return theme;
+  if (legacyRule) return setSectionBackgroundBlur(theme, true);
   const next = cloneTheme(theme);
   next.values[CARD_MOD_THEME_KEY] = expectedName;
   return next;
@@ -43,20 +69,24 @@ export function syncCardModThemeName(theme: ThemeDocument): ThemeDocument {
 
 export function setSectionBackgroundBlur(theme: ThemeDocument, enabled: boolean): ThemeDocument {
   const next = cloneTheme(theme);
-  const currentStyle = next.values[CARD_MOD_GRID_SECTION_KEY] ?? "";
+  const currentLegacyStyle = next.values[CARD_MOD_GRID_SECTION_KEY] ?? "";
+  const remainingLegacyStyle = removeLegacyGridSectionBlur(currentLegacyStyle);
+  if (remainingLegacyStyle) next.values[CARD_MOD_GRID_SECTION_KEY] = remainingLegacyStyle;
+  else delete next.values[CARD_MOD_GRID_SECTION_KEY];
+
+  const currentViewStyle = next.values[CARD_MOD_VIEW_YAML_KEY] ?? "";
+  const customViewStyle = removeGeneratedViewBlur(currentViewStyle);
 
   if (enabled) {
-    const customStyle = removeGeneratedSectionBlur(currentStyle);
-    next.values[CARD_MOD_GRID_SECTION_KEY] = customStyle
-      ? `${customStyle}\n\n${SECTION_BLUR_STYLE}`
-      : SECTION_BLUR_STYLE;
+    next.values[CARD_MOD_VIEW_YAML_KEY] = customViewStyle
+      ? `${customViewStyle}\n\n${SECTION_BLUR_VIEW_RULE}`
+      : SECTION_BLUR_VIEW_RULE;
     next.values[CARD_MOD_THEME_KEY] = next.name.trim() || "Mon thème";
     return next;
   }
 
-  const remainingStyle = removeGeneratedSectionBlur(currentStyle);
-  if (remainingStyle) next.values[CARD_MOD_GRID_SECTION_KEY] = remainingStyle;
-  else delete next.values[CARD_MOD_GRID_SECTION_KEY];
+  if (customViewStyle) next.values[CARD_MOD_VIEW_YAML_KEY] = customViewStyle;
+  else delete next.values[CARD_MOD_VIEW_YAML_KEY];
 
   if (!hasOtherCardModRules(next.values)) delete next.values[CARD_MOD_THEME_KEY];
   return next;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 — 2026-09-01
+
+- Correction du flou des sections : la règle cible maintenant `.section` dans le Shadow DOM de `hui-sections-view` via `card-mod-view-yaml`.
+- Migration automatique de la règle `card-mod-grid-section` générée par la version 0.1.6 lors du prochain enregistrement du thème.
+
 ## 0.1.6 — 2026-09-01
 
 - Nouvelle option **Flouter le fond des sections**, avec génération automatique et réversible des règles `card-mod-theme` et `card-mod-grid-section`.
