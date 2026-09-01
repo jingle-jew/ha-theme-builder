@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.10 — 2026-09-01
+
+- Le flou des sections est maintenant limité aux conteneurs portant la classe native `.has-background`; une section sans couleur de fond configurée reste entièrement transparente.
+- Migration automatique de la règle générée par la version 0.1.9 lors du prochain enregistrement du thème.
+
 ## 0.1.9 — 2026-09-01
 
 - Le flou déborde maintenant de `8px` autour de `hui-grid-section` afin de couvrir aussi le padding natif du conteneur de section, sans modifier le layout ni les interactions.

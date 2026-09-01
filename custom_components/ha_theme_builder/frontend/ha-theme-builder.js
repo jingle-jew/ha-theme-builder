@@ -11150,7 +11150,7 @@ const We = "card-mod-theme", ve = "card-mod-grid-section", je = "card-mod-view-y
   position: relative;
 }
 
-:host::before {
+:host-context(.has-background)::before {
   content: "";
   position: absolute;
   inset: calc(-1 * var(--ha-space-2, 8px));
@@ -11186,7 +11186,7 @@ function cs(s) {
 }
 function Ut(s) {
   if (!cs(s)) return s;
-  const e = s.name.trim() || "Mon thème", t = s.values[ve] ?? "", r = (s.values[je] ?? "").includes(sa) || t.includes(Vt) && !t.includes(":host::before");
+  const e = s.name.trim() || "Mon thème", t = s.values[ve] ?? "", r = (s.values[je] ?? "").includes(sa) || t.includes(Vt) && !t.includes(":host-context(.has-background)::before");
   if (s.values[We] === e && !r) return s;
   if (r) return ds(s, !0);
   const o = ls(s);

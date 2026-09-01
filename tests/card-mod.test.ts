@@ -17,7 +17,7 @@ describe("Card Mod section background blur", () => {
     expect(theme.values[CARD_MOD_THEME_KEY]).toBe("Verre doux");
     expect(theme.values[CARD_MOD_VIEW_YAML_KEY]).toBeUndefined();
     expect(sectionRule).toContain(":host {");
-    expect(sectionRule).toContain(":host::before {");
+    expect(sectionRule).toContain(":host-context(.has-background)::before {");
     expect(sectionRule).toContain("inset: calc(-1 * var(--ha-space-2, 8px))");
     expect(sectionRule).toContain("pointer-events: none");
     expect(sectionRule).toContain("-webkit-backdrop-filter: blur(10px)");
@@ -86,8 +86,21 @@ describe("Card Mod section background blur", () => {
 
     const migrated = syncCardModThemeName(legacy);
 
-    expect(migrated.values[CARD_MOD_GRID_SECTION_KEY]).toContain(":host::before {");
+    expect(migrated.values[CARD_MOD_GRID_SECTION_KEY]).toContain(":host-context(.has-background)::before {");
     expect(migrated.values[CARD_MOD_GRID_SECTION_KEY]).toContain("inset: calc(-1 * var(--ha-space-2, 8px))");
+    expect(hasSectionBackgroundBlur(migrated)).toBe(true);
+  });
+
+  it("migrates the v0.1.9 unconditional pseudo-element rule", () => {
+    const legacy = createTheme("Ancien thème");
+    legacy.values[CARD_MOD_THEME_KEY] = "Ancien thème";
+    legacy.values[CARD_MOD_GRID_SECTION_KEY] = `/* ha-theme-builder: section-background-blur:start */
+:host::before { content: ""; backdrop-filter: blur(10px); }
+/* ha-theme-builder: section-background-blur:end */`;
+
+    const migrated = syncCardModThemeName(legacy);
+
+    expect(migrated.values[CARD_MOD_GRID_SECTION_KEY]).toContain(":host-context(.has-background)::before {");
     expect(hasSectionBackgroundBlur(migrated)).toBe(true);
   });
 
