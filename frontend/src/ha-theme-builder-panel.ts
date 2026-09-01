@@ -6,6 +6,13 @@ import type { VariableChangeDetail } from "./components/variable-control";
 import { THEME_VARIABLES, CATALOG_SOURCE } from "./data/theme-catalog.generated";
 import { THEME_GROUPS } from "./data/groups";
 import { THEME_PRESETS } from "./data/presets";
+import {
+  DEFAULT_VARIABLE_IDS,
+  VISUAL_CONTROLS,
+  visualControl,
+  type VisualControlId,
+  type VisualControlRequestDetail,
+} from "./data/visual-controls";
 import type {
   HomeAssistantLike,
   PreviewDevice,
@@ -34,6 +41,7 @@ import {
 const DRAFT_KEY = "ha-theme-builder:draft:v1";
 const CUSTOM_PROPERTY = /^[a-z][a-z0-9_-]*$/;
 const MAX_BACKGROUND_BYTES = 8 * 1024 * 1024;
+const EXPERT_PAGE_SIZE = 120;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -86,6 +94,8 @@ export class HAThemeBuilderPanel extends LitElement {
   @state() private libraryLoading = false;
   @state() private backgroundUrl = "";
   @state() private backgroundUploading = false;
+  @state() private visualMenu?: { id: VisualControlId; left: number; top: number };
+  @state() private expertLimit = EXPERT_PAGE_SIZE;
 
   private history: ThemeDocument[] = [cloneTheme(this.theme)];
   private historyIndex = 0;
@@ -177,15 +187,13 @@ export class HAThemeBuilderPanel extends LitElement {
     return [...THEME_VARIABLES, ...custom];
   }
 
-  private get visibleDefinitions(): readonly ThemeVariable[] {
+  private get expertDefinitions(): readonly ThemeVariable[] {
     const query = this.query.trim().toLocaleLowerCase();
-    const currentIds = new Set(Object.keys(modeValues(this.theme, this.activeMode)));
     return this.allDefinitions
       .filter((definition) => this.showLegacy || !definition.legacy)
-      .filter((definition) => this.expert || definition.group !== "advanced")
       .filter((definition) => {
         if (query) return `${definition.id} ${definition.label}`.toLocaleLowerCase().includes(query);
-        if (this.selectedGroup === "all") return definition.featured || currentIds.has(definition.id);
+        if (this.selectedGroup === "all") return true;
         return definition.group === this.selectedGroup;
       })
       .sort((left, right) => {
@@ -194,8 +202,41 @@ export class HAThemeBuilderPanel extends LitElement {
       });
   }
 
+  private get visibleDefinitions(): readonly ThemeVariable[] {
+    if (!this.expert) {
+      const definitions = new Map(this.allDefinitions.map((definition) => [definition.id, definition]));
+      return DEFAULT_VARIABLE_IDS.flatMap((id) => definitions.get(id) ?? []);
+    }
+    return this.expertDefinitions.slice(0, this.expertLimit);
+  }
+
   private handleVariableChange(event: CustomEvent<VariableChangeDetail>): void {
     this.commit(setThemeValue(this.theme, this.activeMode, event.detail.id, event.detail.value));
+  }
+
+  private setExpert(expert: boolean): void {
+    this.expert = expert;
+    this.visualMenu = undefined;
+    this.query = "";
+    this.expertLimit = EXPERT_PAGE_SIZE;
+    if (!expert) this.selectedGroup = "all";
+  }
+
+  private positionVisualMenu(id: VisualControlId, clientX: number, clientY: number): void {
+    const width = 370;
+    const left = Math.max(12, Math.min(clientX + 14, window.innerWidth - width - 12));
+    const top = Math.max(72, Math.min(clientY - 28, window.innerHeight - 520));
+    this.visualMenu = { id, left, top };
+  }
+
+  private openVisualMenu(event: CustomEvent<VisualControlRequestDetail>): void {
+    const { id, clientX, clientY } = event.detail;
+    this.positionVisualMenu(id, clientX, clientY);
+  }
+
+  private openVisualMenuFromButton(id: VisualControlId, event: Event): void {
+    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.positionVisualMenu(id, bounds.right, bounds.top + bounds.height / 2);
   }
 
   private selectPreset(index: number): void {
@@ -390,37 +431,53 @@ export class HAThemeBuilderPanel extends LitElement {
     const targetValues = modeValues(this.theme, this.activeMode);
     const baseValues = this.theme.values;
     const group = THEME_GROUPS.find((item) => item.id === this.selectedGroup) ?? THEME_GROUPS[0];
+    const definitions = this.visibleDefinitions;
+    const expertTotal = this.expert ? this.expertDefinitions.length : definitions.length;
     return html`
       <aside class=${`editor ${this.editorOpen ? "open" : ""}`}>
         <div class="editor-head">
           <div class="summary-line">
-            <div class="summary-title"><strong>Variables du thème</strong><span>${changedCount(this.theme)} modifiées · ${CATALOG_SOURCE.count} disponibles</span></div>
+            <div class="summary-title"><strong>${this.expert ? "Catalogue expert" : "Studio visuel"}</strong><span>${changedCount(this.theme)} modifiées · ${this.expert ? `${CATALOG_SOURCE.count} variables disponibles` : "réglages essentiels"}</span></div>
             <div class="mode-segments" aria-label="Portée du thème">
-              ${(["base", "light", "dark"] as const).map((mode) => html`<button class=${`segment-button ${this.activeMode === mode ? "active" : ""}`} title=${mode === "base" ? "Valeurs communes" : mode === "light" ? "Mode clair" : "Mode sombre"} @click=${() => { this.activeMode = mode; }}>${mode === "base" ? "Base" : icon(mode === "light" ? "sun" : "moon", 14)}</button>`)}
+              ${(["base", "light", "dark"] as const).map((mode) => html`<button class=${`segment-button ${this.activeMode === mode ? "active" : ""}`} title=${mode === "base" ? "Valeurs communes" : mode === "light" ? "Mode clair" : "Mode sombre"} @click=${() => { this.activeMode = mode; this.visualMenu = undefined; }}>${mode === "base" ? "Base" : icon(mode === "light" ? "sun" : "moon", 14)}</button>`)}
             </div>
           </div>
-          <div class="search-row">
-            <label class="search">${icon("search", 16)}<input type="search" placeholder="Rechercher une variable…" .value=${this.query} @input=${(event: Event) => { this.query = (event.target as HTMLInputElement).value; }} /></label>
-            <button class="icon-button add-variable" title="Ajouter une variable personnalisée" @click=${() => { this.modal = "custom"; }}>${icon("plus", 17)}</button>
+          <div class="experience-switch" aria-label="Expérience d’édition">
+            <button class=${`experience-button ${!this.expert ? "active" : ""}`} @click=${() => this.setExpert(false)}>${icon("sparkles", 15)} Visuel</button>
+            <button class=${`experience-button ${this.expert ? "active" : ""}`} @click=${() => this.setExpert(true)}>${icon("settings", 15)} Expert</button>
           </div>
-          <div class="filter-row">
-            <select class="group-select" aria-label="Groupe de variables" .value=${this.selectedGroup} @change=${(event: Event) => { this.selectedGroup = (event.target as HTMLSelectElement).value; this.query = ""; }}>
-              ${THEME_GROUPS.filter((item) => this.expert || item.id !== "advanced").map((item) => html`<option value=${item.id}>${item.label}</option>`)}
-            </select>
-            <label class="expert-toggle"><input type="checkbox" .checked=${this.expert} @change=${(event: Event) => { this.expert = (event.target as HTMLInputElement).checked; if (!this.expert && this.selectedGroup === "advanced") this.selectedGroup = "all"; }} />Expert</label>
-          </div>
-          ${this.expert ? html`<div class="legacy-row"><label class="expert-toggle"><input type="checkbox" .checked=${this.showLegacy} @change=${(event: Event) => { this.showLegacy = (event.target as HTMLInputElement).checked; }} />Afficher les alias legacy</label></div>` : nothing}
+          ${this.expert ? html`
+            <div class="search-row expert-search-row">
+              <label class="search">${icon("search", 16)}<input type="search" placeholder="Rechercher parmi toutes les variables…" .value=${this.query} @input=${(event: Event) => { this.query = (event.target as HTMLInputElement).value; this.expertLimit = EXPERT_PAGE_SIZE; }} /></label>
+              <button class="icon-button add-variable" title="Ajouter une variable personnalisée" @click=${() => { this.modal = "custom"; }}>${icon("plus", 17)}</button>
+            </div>
+            <div class="filter-row">
+              <select class="group-select" aria-label="Groupe de variables" .value=${this.selectedGroup} @change=${(event: Event) => { this.selectedGroup = (event.target as HTMLSelectElement).value; this.query = ""; this.expertLimit = EXPERT_PAGE_SIZE; }}>
+                ${THEME_GROUPS.map((item) => html`<option value=${item.id}>${item.id === "all" ? "Toutes les variables" : item.label}</option>`)}
+              </select>
+              <label class="expert-toggle"><input type="checkbox" .checked=${this.showLegacy} @change=${(event: Event) => { this.showLegacy = (event.target as HTMLInputElement).checked; this.expertLimit = EXPERT_PAGE_SIZE; }} />Legacy</label>
+            </div>
+          ` : html`
+            <div class="visual-guide">
+              <span class="visual-guide-icon">${icon("sparkles", 16)}</span>
+              <span><strong>Modifie directement l’aperçu</strong><small>Clique une pastille pour ouvrir ses réglages.</small></span>
+            </div>
+            <div class="visual-zone-grid">
+              ${VISUAL_CONTROLS.map((control) => html`<button class="visual-zone-button" title=${control.description} @click=${(event: Event) => this.openVisualMenuFromButton(control.id, event)}>${icon(control.icon, 14)}<span>${control.label}</span></button>`)}
+            </div>
+          `}
         </div>
         <div class="variable-list" @variable-change=${this.handleVariableChange}>
-          <div class="list-caption"><span>${this.query ? "Résultats" : group.label}</span><span>${this.visibleDefinitions.length} variable${this.visibleDefinitions.length > 1 ? "s" : ""}</span></div>
-          ${this.visibleDefinitions.length ? this.visibleDefinitions.map((definition) => html`
+          <div class="list-caption"><span>${this.expert ? (this.query ? "Résultats" : this.selectedGroup === "all" ? "Toutes les variables" : group.label) : "Réglages globaux"}</span><span>${this.expert ? `${definitions.length}/${expertTotal}` : definitions.length} variable${expertTotal > 1 ? "s" : ""}</span></div>
+          ${definitions.length ? definitions.map((definition) => html`
             <theme-variable-control
               .definition=${definition}
               .value=${targetValues[definition.id] ?? ""}
               .inheritedValue=${this.activeMode === "base" ? definition.defaultValue : (baseValues[definition.id] ?? definition.defaultValue)}
               .overridden=${Object.hasOwn(targetValues, definition.id)}
             ></theme-variable-control>
-          `) : html`<div class="empty"><div><strong>Aucune variable trouvée</strong><span>Essaie un autre terme ou active le mode expert.</span></div></div>`}
+          `) : html`<div class="empty"><div><strong>Aucune variable trouvée</strong><span>Essaie un autre terme ou affiche les alias legacy.</span></div></div>`}
+          ${this.expert && definitions.length < expertTotal ? html`<button class="load-more" @click=${() => { this.expertLimit += EXPERT_PAGE_SIZE; }}>Afficher ${Math.min(EXPERT_PAGE_SIZE, expertTotal - definitions.length)} variables supplémentaires</button>` : nothing}
         </div>
       </aside>
     `;
@@ -435,14 +492,46 @@ export class HAThemeBuilderPanel extends LitElement {
         <div class="preview-toolbar">
           <span class="preview-label">Aperçu</span>
           <div class="preview-tabs">
-            ${(["card", "dashboard", "system"] as const).map((kind) => html`<button class=${`segment-button ${this.previewKind === kind ? "active" : ""}`} @click=${() => { this.previewKind = kind; }}>${icon(kind === "card" ? "card" : kind === "dashboard" ? "dashboard" : "settings", 14)}<span>${kind === "card" ? "Cartes" : kind === "dashboard" ? "Dashboard" : "Système"}</span></button>`)}
+            ${(["card", "dashboard", "system"] as const).map((kind) => html`<button class=${`segment-button ${this.previewKind === kind ? "active" : ""}`} @click=${() => { this.previewKind = kind; this.visualMenu = undefined; }}>${icon(kind === "card" ? "card" : kind === "dashboard" ? "dashboard" : "settings", 14)}<span>${kind === "card" ? "Cartes" : kind === "dashboard" ? "Dashboard" : "Système"}</span></button>`)}
           </div>
           <button class=${`button background-action ${hasBackground ? "active" : ""}`} @click=${this.openBackground}>${icon("image", 15)}<span>Arrière-plan</span></button>
+          ${!this.expert ? html`<span class="inspector-badge">${icon("sparkles", 13)} Pastilles actives</span>` : nothing}
           <div class="device-tabs">
             ${(["desktop", "tablet", "mobile"] as const).map((device) => html`<button class=${`segment-button ${this.previewDevice === device ? "active" : ""}`} title=${device} @click=${() => { this.previewDevice = device; }}>${icon(device, 15)}</button>`)}
           </div>
         </div>
-        <div class="preview-stage"><ha-theme-preview .values=${values} .kind=${this.previewKind} .device=${this.previewDevice}></ha-theme-preview></div>
+        <div class="preview-stage"><ha-theme-preview .values=${values} .kind=${this.previewKind} .device=${this.previewDevice} .inspector=${!this.expert} @visual-control-request=${this.openVisualMenu}></ha-theme-preview></div>
+      </section>
+    `;
+  }
+
+  private renderVisualMenu() {
+    if (!this.visualMenu || this.expert) return nothing;
+    const control = visualControl(this.visualMenu.id);
+    const definitions = new Map(this.allDefinitions.map((definition) => [definition.id, definition]));
+    const targetValues = modeValues(this.theme, this.activeMode);
+    const baseValues = this.theme.values;
+    const controls = control.variables.flatMap((id) => definitions.get(id) ?? []);
+    return html`
+      <div class="visual-menu-scrim" @click=${() => { this.visualMenu = undefined; }}></div>
+      <section class="visual-menu" role="dialog" aria-label=${control.label} style=${`left:${this.visualMenu.left}px;top:${this.visualMenu.top}px`}>
+        <div class="visual-menu-head">
+          <span class="visual-menu-icon">${icon(control.icon, 17)}</span>
+          <span><strong>${control.label}</strong><small>${control.description}</small></span>
+          <button class="icon-button" title="Fermer" @click=${() => { this.visualMenu = undefined; }}>${icon("close", 16)}</button>
+        </div>
+        <div class="visual-menu-scope">${this.activeMode === "base" ? "Valeurs communes" : this.activeMode === "light" ? "Mode clair" : "Mode sombre"}</div>
+        ${control.photo ? html`<button class="photo-menu-button" @click=${() => { this.visualMenu = undefined; this.openBackground(); }}>${icon("image", 16)}<span><strong>Photo d’arrière-plan</strong><small>Choisir, remplacer ou retirer l’image</small></span>${icon("chevron", 15)}</button>` : nothing}
+        <div class="visual-menu-controls" @variable-change=${this.handleVariableChange}>
+          ${controls.map((definition) => html`
+            <theme-variable-control
+              .definition=${definition}
+              .value=${targetValues[definition.id] ?? ""}
+              .inheritedValue=${this.activeMode === "base" ? definition.defaultValue : (baseValues[definition.id] ?? definition.defaultValue)}
+              .overridden=${Object.hasOwn(targetValues, definition.id)}
+            ></theme-variable-control>
+          `)}
+        </div>
       </section>
     `;
   }
@@ -521,6 +610,7 @@ export class HAThemeBuilderPanel extends LitElement {
         </main>
       </div>
       ${this.renderModal()}
+      ${this.renderVisualMenu()}
       ${this.toast ? html`<div class=${`toast ${this.toast.error ? "error" : ""}`}>${icon(this.toast.error ? "close" : "check", 17)}${this.toast.message}</div>` : nothing}
     `;
   }

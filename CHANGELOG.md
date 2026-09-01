@@ -1,8 +1,10 @@
 # Changelog
 
-## Non publié
+## 0.1.5 — 2026-08-31
 
 - Suppression ciblée du fond et du blur sur les en-têtes texte natifs, tout en conservant la surface verre des chips.
+- Nouveau studio visuel par défaut avec pastilles contextuelles et menus de réglage directement liés aux surfaces de l’aperçu.
+- Le mode expert donne désormais accès à l’intégralité du catalogue filtrable, tandis que la liste par défaut est limitée aux variables globales essentielles.
 
 ## 0.1.4 — 2026-08-31
 

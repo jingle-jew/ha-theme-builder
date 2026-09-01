@@ -14,12 +14,16 @@ Un constructeur de thèmes entièrement graphique pour Home Assistant. Il s’in
 - blur/frosted natif avec `ha-card-background` et `ha-card-backdrop-filter` ;
 - arrière-plan photo par URL ou téléversement local, avec variantes Base/clair/sombre ;
 - en-têtes texte natifs sans fond ni blur, sans modifier les chips de l’en-tête ;
+- studio visuel par défaut avec pastilles contextuelles sur les surfaces, bordures, rayons, textes et zones de navigation ;
+- catalogue complet conservé dans un mode expert séparé ;
 - aperçus dédiés aux cartes dashboard, à un dashboard complet et aux pages système ;
 - cadres desktop, tablette et mobile ;
 - préréglages, annuler/rétablir, brouillon local, import, copie et export YAML ;
 - sauvegarde admin dans `config/themes/ha_theme_builder.yaml`, écriture atomique puis rechargement des thèmes.
 
 Les alias `mdc-*`/`md-*` conservés pour compatibilité sont masqués par défaut. Les quatre modèles contenant des placeholders (`state-{domain}…`) ne sont pas exportés littéralement : le bouton **+** permet de créer leur forme concrète pour le domaine et l’état voulus.
+
+Le mode **Visuel** expose une sélection courte de réglages globaux. Les pastilles affichées dans l’aperçu ouvrent le menu correspondant à la zone sélectionnée, avec les contrôles couleur, opacité, blur, bordure, rayon ou ombre adaptés. Le mode **Expert** donne accès au catalogue complet, à ses catégories, à la recherche et aux alias legacy.
 
 ## Développement local
 

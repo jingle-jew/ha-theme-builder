@@ -1,6 +1,11 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
+import {
+  visualControl,
+  type VisualControlId,
+  type VisualControlRequestDetail,
+} from "../data/visual-controls";
 import type { PreviewDevice, PreviewKind } from "../models/types";
 import { icon } from "../utils/icons";
 
@@ -9,6 +14,7 @@ export class HAThemePreview extends LitElement {
   @property({ attribute: false }) public values: Record<string, string> = {};
   @property() public kind: PreviewKind = "dashboard";
   @property() public device: PreviewDevice = "desktop";
+  @property({ type: Boolean }) public inspector = false;
 
   static styles = css`
     :host {
@@ -115,12 +121,12 @@ export class HAThemePreview extends LitElement {
     .content::before { top: 80px; right: 8%; background: color-mix(in srgb, var(--primary-color), transparent 55%); }
     .content::after { bottom: -90px; left: 31%; background: color-mix(in srgb, var(--accent-color), transparent 65%); }
     .view { position: relative; z-index: 1; width: min(100%, 930px); margin: 0 auto; }
-    .view-heading { display: flex; align-items: flex-end; justify-content: space-between; margin: 2px 2px 14px; }
+    .view-heading { position: relative; display: flex; align-items: flex-end; justify-content: space-between; margin: 2px 2px 14px; }
     .view-heading h1 { margin: 0; color: var(--primary-text-color); font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
     .view-heading span { color: var(--secondary-text-color); font-size: 9px; }
     .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 11px; }
     .ha-card {
-      min-width: 0; overflow: hidden; color: var(--primary-text-color); background: var(--ha-card-background, var(--card-background-color));
+      position: relative; min-width: 0; overflow: hidden; color: var(--primary-text-color); background: var(--ha-card-background, var(--card-background-color));
       border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
       border-radius: var(--ha-card-border-radius, 16px); box-shadow: var(--ha-card-box-shadow, none);
       -webkit-backdrop-filter: var(--ha-card-backdrop-filter, none); backdrop-filter: var(--ha-card-backdrop-filter, none);
@@ -175,7 +181,7 @@ export class HAThemePreview extends LitElement {
     .media strong { display: block; margin-top: 16px; font-size: 11px; }
     .media span { font-size: 8px; opacity: .75; }
     .system-view { width: min(100%, 810px); }
-    .system-title { display: flex; align-items: center; gap: 10px; margin: 1px 0 15px; }
+    .system-title { position: relative; display: flex; align-items: center; gap: 10px; margin: 1px 0 15px; }
     .system-title h1 { margin: 0; font-size: 18px; font-weight: 550; }
     .system-tabs { display: flex; gap: 18px; margin-bottom: 13px; border-bottom: 1px solid var(--divider-color); }
     .system-tab { padding: 9px 1px; color: var(--secondary-text-color); font-size: 9px; }
@@ -190,11 +196,54 @@ export class HAThemePreview extends LitElement {
     .integration span { color: var(--secondary-text-color); font-size: 8px; }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success-color); }
     .device.mobile .integration-list { grid-template-columns: 1fr; }
+    .visual-marker {
+      position: absolute; z-index: 30; display: flex; align-items: center; gap: 5px; height: 22px; max-width: 22px; padding: 0;
+      overflow: hidden; border: 1px solid rgba(255,255,255,.9); border-radius: 999px; outline: 0; color: #fff;
+      background: #6657dd; box-shadow: 0 4px 13px rgba(35, 27, 105, .34); cursor: pointer; pointer-events: auto;
+      transition: max-width 160ms ease, transform 120ms ease, box-shadow 120ms ease; white-space: nowrap;
+    }
+    .visual-marker:hover, .visual-marker:focus-visible { max-width: 145px; box-shadow: 0 6px 18px rgba(35, 27, 105, .42); transform: translateY(-1px); }
+    .visual-marker:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .marker-dot { display: grid; place-items: center; flex: 0 0 20px; width: 20px; height: 20px; }
+    .marker-label { padding-right: 8px; font-size: 8px; font-weight: 750; letter-spacing: .01em; }
+    .sidebar-marker { top: 55px; right: 7px; }
+    .header-marker { top: 14px; left: 48%; }
+    .background-marker { top: 12px; right: 12px; }
+    .text-marker { top: -3px; left: 122px; }
+    .state-marker { top: 8px; right: 8px; }
+    .surface-marker { top: 13px; right: 13px; }
+    .border-marker { top: 50%; right: -1px; transform: translateY(-50%); }
+    .border-marker:hover, .border-marker:focus-visible { transform: translateY(calc(-50% - 1px)); }
+    .radius-marker { top: -1px; left: -1px; }
+    .glass-marker { bottom: 11px; right: 13px; }
+    .shadow-marker { bottom: 11px; left: 13px; }
+    .gallery-surface-marker { top: 12px; right: 12px; }
+    .gallery-radius-marker { top: -1px; left: -1px; }
+    .system-surface-marker { top: 8px; right: 8px; }
+    .device.mobile .visual-marker, .device.tablet .visual-marker { max-width: 20px; height: 20px; }
+    .device.mobile .marker-label, .device.tablet .marker-label { display: none; }
   `;
+
+  private requestVisualControl(event: MouseEvent, id: VisualControlId): void {
+    event.stopPropagation();
+    const detail: VisualControlRequestDetail = { id, clientX: event.clientX, clientY: event.clientY };
+    this.dispatchEvent(new CustomEvent<VisualControlRequestDetail>("visual-control-request", {
+      detail,
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
+  private renderVisualMarker(id: VisualControlId, className: string) {
+    if (!this.inspector) return nothing;
+    const control = visualControl(id);
+    return html`<button class=${`visual-marker ${className}`} title=${control.label} aria-label=${`Configurer ${control.label}`} @click=${(event: MouseEvent) => this.requestVisualControl(event, id)}><span class="marker-dot">${icon(control.icon, 12)}</span><span class="marker-label">${control.label}</span></button>`;
+  }
 
   private renderSidebar() {
     return html`
       <aside class="sidebar">
+        ${this.renderVisualMarker("sidebar", "sidebar-marker")}
         <div class="brand"><div class="ha-logo">HA</div><div class="brand-name">Home Assistant</div></div>
         <nav class="navigation">
           <div class="nav-item active">${icon("dashboard", 15)}<span class="nav-label">Vue d’ensemble</span></div>
@@ -208,7 +257,7 @@ export class HAThemePreview extends LitElement {
 
   private renderTiles() {
     return html`
-      <article class="ha-card tile on"><div class="tile-icon">${icon("sun", 16)}</div><strong>Salon</strong><span>Allumée · 72%</span></article>
+      <article class="ha-card tile on">${this.renderVisualMarker("states", "state-marker")}<div class="tile-icon">${icon("sun", 16)}</div><strong>Salon</strong><span>Allumée · 72%</span></article>
       <article class="ha-card tile"><div class="tile-icon">${icon("settings", 16)}</div><strong>Porte d’entrée</strong><span>Verrouillée</span></article>
       <article class="ha-card tile on"><div class="tile-icon">${icon("activity", 16)}</div><strong>Climatisation</strong><span>22,5 °C</span></article>
       <article class="ha-card tile"><div class="tile-icon">${icon("card", 16)}</div><strong>Garage</strong><span>Fermé</span></article>
@@ -219,10 +268,15 @@ export class HAThemePreview extends LitElement {
     const heights = [32, 48, 39, 67, 54, 72, 43, 59, 75, 65, 84, 57];
     return html`
       <div class="view">
-        <div class="view-heading"><h1>Bonjour, Julien</h1><span>Dimanche 31 août · 21 °C</span></div>
+        <div class="view-heading"><h1>Bonjour, Julien</h1>${this.renderVisualMarker("text", "text-marker")}<span>Dimanche 31 août · 21 °C</span></div>
         <div class="grid">
           ${this.renderTiles()}
           <article class="ha-card weather">
+            ${this.renderVisualMarker("card-surface", "surface-marker")}
+            ${this.renderVisualMarker("card-border", "border-marker")}
+            ${this.renderVisualMarker("card-radius", "radius-marker")}
+            ${this.renderVisualMarker("card-glass", "glass-marker")}
+            ${this.renderVisualMarker("card-shadow", "shadow-marker")}
             <div class="weather-top"><h3>Météo</h3><div class="temperature">21<small>°C</small></div></div>
             <div class="forecast">${["Auj.", "Lun.", "Mar.", "Mer.", "Jeu."].map((day, index) => html`<div class="day">${day}<b>${index === 2 ? "☁" : "☀"}</b><strong>${21 + index}°</strong></div>`)}</div>
           </article>
@@ -241,9 +295,9 @@ export class HAThemePreview extends LitElement {
   private renderCardGallery() {
     return html`
       <div class="view">
-        <div class="view-heading"><h1>Cartes dashboard</h1><span>Composants natifs</span></div>
+        <div class="view-heading"><h1>Cartes dashboard</h1>${this.renderVisualMarker("text", "text-marker")}<span>Composants natifs</span></div>
         <div class="card-gallery">
-          <article class="ha-card thermostat"><div class="dial"><strong>22°</strong></div></article>
+          <article class="ha-card thermostat">${this.renderVisualMarker("card-surface", "gallery-surface-marker")}${this.renderVisualMarker("card-radius", "gallery-radius-marker")}${this.renderVisualMarker("card-glass", "glass-marker")}<div class="dial"><strong>22°</strong></div></article>
           <article class="ha-card media"><div class="album"></div><strong>Midnight City</strong><span>M83 · Salon</span></article>
           <article class="ha-card entities">
             <h3>Lumières</h3>
@@ -259,10 +313,10 @@ export class HAThemePreview extends LitElement {
     const integrations = [["HA", "Home Assistant Cloud", "1 service"], ["H", "HomeKit Bridge", "42 entités"], ["Z", "Zigbee Home Automation", "18 appareils"], ["M", "MQTT", "7 appareils"], ["E", "ESPHome", "12 appareils"], ["S", "Sun", "1 entité"]];
     return html`
       <div class="view system-view">
-        <div class="system-title">${icon("settings", 18)}<h1>Appareils et services</h1></div>
+        <div class="system-title">${icon("settings", 18)}<h1>Appareils et services</h1>${this.renderVisualMarker("text", "text-marker")}</div>
         <div class="system-tabs"><div class="system-tab active">Intégrations</div><div class="system-tab">Appareils</div><div class="system-tab">Entités</div><div class="system-tab">Assistants</div></div>
         <div class="integration-toolbar"><div class="search-box">${icon("search", 13)} Rechercher des intégrations</div><div class="add-button">${icon("plus", 16)}</div></div>
-        <div class="integration-list">${integrations.map(([letter, name, detail]) => html`<article class="ha-card integration"><div class="integration-logo">${letter}</div><div><strong>${name}</strong><span>${detail}</span></div><div class="status-dot"></div></article>`)}</div>
+        <div class="integration-list">${integrations.map(([letter, name, detail], index) => html`<article class="ha-card integration">${index === 0 ? this.renderVisualMarker("card-surface", "system-surface-marker") : nothing}<div class="integration-logo">${letter}</div><div><strong>${name}</strong><span>${detail}</span></div><div class="status-dot"></div></article>`)}</div>
       </div>
     `;
   }
@@ -275,8 +329,8 @@ export class HAThemePreview extends LitElement {
         <div class="shell">
           ${this.kind !== "card" ? this.renderSidebar() : nothing}
           <main class="main" style=${this.kind === "card" ? "grid-column:1/-1" : ""}>
-            <header class="header"><div class="header-icon">${this.device === "mobile" ? icon("menu", 17) : icon(this.kind === "system" ? "settings" : "dashboard", 16)}</div><div class="header-title">${title}</div><div class="header-icon">${icon("search", 16)}</div><div class="header-icon">⋮</div></header>
-            <section class="content">${this.kind === "dashboard" ? this.renderDashboard() : this.kind === "card" ? this.renderCardGallery() : this.renderSystem()}</section>
+            <header class="header">${this.renderVisualMarker("header", "header-marker")}<div class="header-icon">${this.device === "mobile" ? icon("menu", 17) : icon(this.kind === "system" ? "settings" : "dashboard", 16)}</div><div class="header-title">${title}</div><div class="header-icon">${icon("search", 16)}</div><div class="header-icon">⋮</div></header>
+            <section class="content">${this.renderVisualMarker("background", "background-marker")}${this.kind === "dashboard" ? this.renderDashboard() : this.kind === "card" ? this.renderCardGallery() : this.renderSystem()}</section>
           </main>
         </div>
       </div>
