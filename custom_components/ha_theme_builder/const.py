@@ -13,6 +13,7 @@ PANEL_ICON = "mdi:palette-swatch-variant"
 
 STATIC_URL_PATH = "/ha_theme_builder"
 FRONTEND_MODULE = "ha-theme-builder.js"
+FRONTEND_FIXES_MODULE = "ha-theme-builder-fixes.js"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
 THEMES_DIRECTORY = "themes"

@@ -16,6 +16,7 @@ from .background_store import BackgroundFileStore
 from .const import (
     DOMAIN,
     FRONTEND_DIR,
+    FRONTEND_FIXES_MODULE,
     FRONTEND_MODULE,
     PANEL_COMPONENT,
     PANEL_ICON,
@@ -31,6 +32,8 @@ _LOGGER = logging.getLogger(__name__)
 _STATIC_REGISTERED = "static_registered"
 _PANEL_REGISTERED = "panel_registered"
 _WEBSOCKET_REGISTERED = "websocket_registered"
+_FIXES_REGISTERED = "fixes_registered"
+_FIXES_URL = "fixes_url"
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -56,6 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         data[_STATIC_REGISTERED] = True
 
+    if not data.get(_FIXES_REGISTERED):
+        fixes_url = f"{STATIC_URL_PATH}/{FRONTEND_FIXES_MODULE}?v={VERSION}"
+        frontend.add_extra_js_url(hass, fixes_url)
+        data[_FIXES_URL] = fixes_url
+        data[_FIXES_REGISTERED] = True
+
     if not data.get(_WEBSOCKET_REGISTERED):
         async_register_websocket_commands(hass)
         data[_WEBSOCKET_REGISTERED] = True
@@ -79,6 +88,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Remove the sidebar panel when the config entry is unloaded."""
     data = hass.data.get(DOMAIN, {})
+    if data.get(_FIXES_REGISTERED):
+        frontend.remove_extra_js_url(hass, data[_FIXES_URL])
+        data[_FIXES_REGISTERED] = False
     if data.get(_PANEL_REGISTERED):
         frontend.async_remove_panel(hass, PANEL_URL_PATH)
         data[_PANEL_REGISTERED] = False

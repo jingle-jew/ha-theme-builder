@@ -10,14 +10,12 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     lib: {
-      entry: fileURLToPath(new URL("./src/ha-theme-builder-panel.ts", import.meta.url)),
-      formats: ["es"],
-      fileName: () => "ha-theme-builder.js",
-    },
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
+      entry: {
+        "ha-theme-builder": fileURLToPath(new URL("./src/ha-theme-builder-panel.ts", import.meta.url)),
+        "ha-theme-builder-fixes": fileURLToPath(new URL("./src/native-surface-fixes.ts", import.meta.url)),
       },
+      formats: ["es"],
+      fileName: (_format, entryName) => `${entryName}.js`,
     },
   },
   server: {

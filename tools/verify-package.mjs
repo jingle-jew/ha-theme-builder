@@ -7,7 +7,9 @@ const hacs = JSON.parse(await readFile(path.join(ROOT, "hacs.json"), "utf8"));
 const manifest = JSON.parse(await readFile(path.join(ROOT, "custom_components", "ha_theme_builder", "manifest.json"), "utf8"));
 const packageJson = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
 const frontend = path.join(ROOT, "custom_components", "ha_theme_builder", "frontend", "ha-theme-builder.js");
+const frontendFixes = path.join(ROOT, "custom_components", "ha_theme_builder", "frontend", "ha-theme-builder-fixes.js");
 const frontendSize = (await stat(frontend)).size;
+const frontendFixesSize = (await stat(frontendFixes)).size;
 
 if (hacs.zip_release !== true || hacs.filename !== "ha-theme-builder-hacs.zip") {
   throw new Error("hacs.json must point to the generated HACS release asset.");
@@ -27,5 +29,8 @@ if (process.env.RELEASE_TAG) {
 if (frontendSize < 100_000) {
   throw new Error(`Bundled frontend looks incomplete (${frontendSize} bytes).`);
 }
+if (frontendFixesSize < 500) {
+  throw new Error(`Bundled native surface fixes look incomplete (${frontendFixesSize} bytes).`);
+}
 
-console.log(`Package contract verified; bundled frontend is ${frontendSize} bytes.`);
+console.log(`Package contract verified; bundled frontend is ${frontendSize} bytes and native fixes are ${frontendFixesSize} bytes.`);

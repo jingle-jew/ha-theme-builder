@@ -13,6 +13,7 @@ Un constructeur de thèmes entièrement graphique pour Home Assistant. Il s’in
 - ajout graphique des variables dynamiques, par exemple `state-light-reading-color` ;
 - blur/frosted natif avec `ha-card-background` et `ha-card-backdrop-filter` ;
 - arrière-plan photo par URL ou téléversement local, avec variantes Base/clair/sombre ;
+- en-têtes texte natifs sans fond ni blur, sans modifier les chips de l’en-tête ;
 - aperçus dédiés aux cartes dashboard, à un dashboard complet et aux pages système ;
 - cadres desktop, tablette et mobile ;
 - préréglages, annuler/rétablir, brouillon local, import, copie et export YAML ;

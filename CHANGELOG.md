@@ -1,5 +1,9 @@
 # Changelog
 
+## Non publié
+
+- Suppression ciblée du fond et du blur sur les en-têtes texte natifs, tout en conservant la surface verre des chips.
+
 ## 0.1.4 — 2026-08-31
 
 - Ajout d’un arrière-plan photo par URL ou téléversement local, avec aperçu et portées Base/clair/sombre.
