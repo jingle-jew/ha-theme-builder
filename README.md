@@ -75,7 +75,7 @@ Pour rendre le blur visible, l’arrière-plan de la carte doit être partiellem
 
 ### Flou du fond des sections avec Card Mod
 
-L’option **Flouter le fond des sections** ajoute automatiquement au thème enregistré les entrées `card-mod-theme` et `card-mod-grid-section`. Card Mod injecte la règle dans chaque `hui-grid-section`, où elle cible directement `:host`, sans devoir répéter du YAML dans chaque dashboard.
+L’option **Flouter le fond des sections** ajoute automatiquement au thème enregistré les entrées `card-mod-theme` et `card-mod-grid-section`. Card Mod injecte la règle dans chaque `hui-grid-section`; un pseudo-élément de `:host` étend le flou sur les `8px` de padding natif du conteneur, sans devoir répéter du YAML dans chaque dashboard.
 
 Cette fonctionnalité nécessite que [Card Mod](https://github.com/thomasloven/lovelace-card-mod) soit installé et chargé dans Home Assistant. Sans Card Mod, les entrées du thème restent sans effet, mais le reste du thème continue de fonctionner normalement. Le bloc généré est balisé : désactiver l’option retire uniquement la règle créée par Theme Builder et conserve les styles Card Mod ajoutés manuellement autour d’elle.
 

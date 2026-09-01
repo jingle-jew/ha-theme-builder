@@ -11,8 +11,17 @@ const SECTION_BLUR_YAML_END = "# ha-theme-builder: section-background-blur:end";
 
 const SECTION_BLUR_STYLE = `${SECTION_BLUR_CSS_START}
 :host {
+  position: relative;
+}
+
+:host::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--ha-space-2, 8px));
+  border-radius: var(--ha-border-radius-xl, 16px);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+  pointer-events: none;
 }
 ${SECTION_BLUR_CSS_END}`;
 
@@ -57,7 +66,7 @@ export function syncCardModThemeName(theme: ThemeDocument): ThemeDocument {
   const generatedGridStyle = theme.values[CARD_MOD_GRID_SECTION_KEY] ?? "";
   const generatedViewStyle = theme.values[CARD_MOD_VIEW_YAML_KEY] ?? "";
   const needsMigration = generatedViewStyle.includes(SECTION_BLUR_YAML_START)
-    || (generatedGridStyle.includes(SECTION_BLUR_CSS_START) && !generatedGridStyle.includes(":host"));
+    || (generatedGridStyle.includes(SECTION_BLUR_CSS_START) && !generatedGridStyle.includes(":host::before"));
   if (theme.values[CARD_MOD_THEME_KEY] === expectedName && !needsMigration) return theme;
   if (needsMigration) return setSectionBackgroundBlur(theme, true);
   const next = cloneTheme(theme);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9 — 2026-09-01
+
+- Le flou déborde maintenant de `8px` autour de `hui-grid-section` afin de couvrir aussi le padding natif du conteneur de section, sans modifier le layout ni les interactions.
+- Migration automatique de la règle générée par la version 0.1.8 lors du prochain enregistrement du thème.
+
 ## 0.1.8 — 2026-09-01
 
 - Le flou cible directement `:host` dans `card-mod-grid-section`, un point d’injection confirmé fonctionnel avec Card Mod 4.2.1.

@@ -11147,8 +11147,17 @@ function Ir(s) {
 }
 const We = "card-mod-theme", ve = "card-mod-grid-section", je = "card-mod-view-yaml", Vt = "/* ha-theme-builder: section-background-blur:start */", is = "/* ha-theme-builder: section-background-blur:end */", sa = "# ha-theme-builder: section-background-blur:start", Pr = "# ha-theme-builder: section-background-blur:end", Ia = `${Vt}
 :host {
+  position: relative;
+}
+
+:host::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--ha-space-2, 8px));
+  border-radius: var(--ha-border-radius-xl, 16px);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+  pointer-events: none;
 }
 ${is}`;
 function ls(s) {
@@ -11177,7 +11186,7 @@ function cs(s) {
 }
 function Ut(s) {
   if (!cs(s)) return s;
-  const e = s.name.trim() || "Mon thème", t = s.values[ve] ?? "", r = (s.values[je] ?? "").includes(sa) || t.includes(Vt) && !t.includes(":host");
+  const e = s.name.trim() || "Mon thème", t = s.values[ve] ?? "", r = (s.values[je] ?? "").includes(sa) || t.includes(Vt) && !t.includes(":host::before");
   if (s.values[We] === e && !r) return s;
   if (r) return ds(s, !0);
   const o = ls(s);
