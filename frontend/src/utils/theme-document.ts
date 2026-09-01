@@ -1,5 +1,6 @@
 import { parse, stringify } from "yaml";
 import type { ThemeDocument, ThemeMode } from "../models/types";
+import { syncCardModThemeName } from "./card-mod";
 
 const VARIABLE_NAME = /^[a-z][a-z0-9_-]*$/;
 
@@ -33,12 +34,13 @@ export function setThemeValue(
 }
 
 export function themeToYaml(theme: ThemeDocument): string {
-  const body: Record<string, unknown> = { ...theme.values };
+  const prepared = syncCardModThemeName(theme);
+  const body: Record<string, unknown> = { ...prepared.values };
   const modes: Record<string, Record<string, string>> = {};
-  if (Object.keys(theme.modes.light).length) modes.light = theme.modes.light;
-  if (Object.keys(theme.modes.dark).length) modes.dark = theme.modes.dark;
+  if (Object.keys(prepared.modes.light).length) modes.light = prepared.modes.light;
+  if (Object.keys(prepared.modes.dark).length) modes.dark = prepared.modes.dark;
   if (Object.keys(modes).length) body.modes = modes;
-  return stringify({ [theme.name.trim() || "Mon thème"]: body }, { lineWidth: 0, singleQuote: false });
+  return stringify({ [prepared.name.trim() || "Mon thème"]: body }, { lineWidth: 0, singleQuote: false });
 }
 
 function stringRecord(value: unknown): Record<string, string> {

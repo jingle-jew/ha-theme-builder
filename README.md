@@ -12,6 +12,7 @@ Un constructeur de thèmes entièrement graphique pour Home Assistant. Il s’in
 - recherche instantanée, catégories, mode expert et filtre legacy ;
 - ajout graphique des variables dynamiques, par exemple `state-light-reading-color` ;
 - blur/frosted natif avec `ha-card-background` et `ha-card-backdrop-filter` ;
+- flou optionnel du fond de toutes les sections, généré automatiquement pour Card Mod ;
 - arrière-plan photo par URL ou téléversement local, avec variantes Base/clair/sombre ;
 - en-têtes texte natifs sans fond ni blur, sans modifier les chips de l’en-tête ;
 - studio visuel par défaut avec pastilles contextuelles sur les surfaces, bordures, rayons, textes et zones de navigation ;
@@ -71,6 +72,12 @@ Home Assistant applique directement `--ha-card-backdrop-filter` sur `ha-card`. L
 - la bordure, le rayon et l’ombre de la carte.
 
 Pour rendre le blur visible, l’arrière-plan de la carte doit être partiellement transparent et le dashboard doit avoir une image, un dégradé ou des éléments colorés derrière les cartes.
+
+### Flou du fond des sections avec Card Mod
+
+L’option **Flouter le fond des sections** ajoute automatiquement au thème enregistré les entrées `card-mod-theme` et `card-mod-grid-section`. La règle cible la surface `.section` des dashboards en vue **Sections**, sans devoir répéter du YAML dans chaque dashboard.
+
+Cette fonctionnalité nécessite que [Card Mod](https://github.com/thomasloven/lovelace-card-mod) soit installé et chargé dans Home Assistant. Sans Card Mod, les entrées du thème restent sans effet, mais le reste du thème continue de fonctionner normalement. Le bloc généré est balisé : désactiver l’option retire uniquement la règle créée par Theme Builder et conserve les styles Card Mod ajoutés manuellement autour d’elle.
 
 ## Arrière-plan photo
 

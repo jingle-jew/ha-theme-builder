@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6 — 2026-09-01
+
+- Nouvelle option **Flouter le fond des sections**, avec génération automatique et réversible des règles `card-mod-theme` et `card-mod-grid-section`.
+- La dépendance optionnelle à Card Mod est indiquée directement dans l’éditeur et dans la documentation.
+
 ## 0.1.5 — 2026-08-31
 
 - Suppression ciblée du fond et du blur sur les en-têtes texte natifs, tout en conservant la surface verre des chips.

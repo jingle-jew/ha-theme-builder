@@ -86,6 +86,26 @@ export const appStyles = css`
     color: var(--tb-muted); background: transparent; font-size: 10px; font-weight: 680; cursor: pointer; transition: color 140ms, background 140ms, box-shadow 140ms;
   }
   .experience-button.active { color: var(--tb-accent); background: #fff; box-shadow: 0 2px 9px rgba(40, 48, 72, .09); }
+  .feature-option {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; margin-top: 9px; padding: 9px 10px;
+    border: 1px solid var(--tb-border); border-radius: 10px; color: var(--tb-text); background: #fff; cursor: pointer;
+    transition: border-color 140ms, background 140ms, box-shadow 140ms;
+  }
+  .feature-option:hover { border-color: #d2cdf7; background: #fbfaff; }
+  .feature-option.active { border-color: #d2cdf7; background: #f8f7ff; box-shadow: inset 0 0 0 1px rgba(102, 87, 221, .04); }
+  .feature-option input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+  .feature-option:has(input:focus-visible) { outline: 2px solid var(--tb-accent); outline-offset: 2px; }
+  .feature-switch { position: relative; width: 28px; height: 17px; border-radius: 999px; background: #c9ced8; transition: background 140ms; }
+  .feature-switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 4px rgba(30, 38, 60, .24); transition: transform 140ms;
+  }
+  .feature-option.active .feature-switch { background: var(--tb-accent); }
+  .feature-option.active .feature-switch::after { transform: translateX(11px); }
+  .feature-copy { min-width: 0; }
+  .feature-copy strong { display: block; overflow: hidden; font-size: 9.5px; white-space: nowrap; text-overflow: ellipsis; }
+  .feature-copy small { display: block; margin-top: 2px; overflow: hidden; color: var(--tb-muted); font-size: 8px; white-space: nowrap; text-overflow: ellipsis; }
+  .dependency-badge { padding: 3px 6px; border-radius: 999px; color: #77540c; background: #fff0c9; font-size: 7px; font-weight: 750; white-space: nowrap; text-transform: uppercase; }
   .search-row { display: grid; grid-template-columns: minmax(0, 1fr) 38px; gap: 8px; }
   .expert-search-row { margin-top: 9px; }
   .search {

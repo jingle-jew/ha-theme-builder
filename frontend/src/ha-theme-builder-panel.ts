@@ -29,6 +29,11 @@ import {
   isSupportedBackgroundUrl,
 } from "./utils/background";
 import {
+  hasSectionBackgroundBlur,
+  setSectionBackgroundBlur,
+  syncCardModThemeName,
+} from "./utils/card-mod";
+import {
   changedCount,
   cloneTheme,
   modeValues,
@@ -214,6 +219,14 @@ export class HAThemeBuilderPanel extends LitElement {
     this.commit(setThemeValue(this.theme, this.activeMode, event.detail.id, event.detail.value));
   }
 
+  private toggleSectionBackgroundBlur(event: Event): void {
+    const enabled = (event.target as HTMLInputElement).checked;
+    this.commit(setSectionBackgroundBlur(this.theme, enabled));
+    this.notify(enabled
+      ? "Flou des sections activé · Card Mod requis."
+      : "Flou des sections désactivé.");
+  }
+
   private setExpert(expert: boolean): void {
     this.expert = expert;
     this.visualMenu = undefined;
@@ -362,14 +375,19 @@ export class HAThemeBuilderPanel extends LitElement {
       return;
     }
     try {
+      const prepared = syncCardModThemeName(this.theme);
       await this.hass.callWS({
         type: "ha_theme_builder/save",
-        name: this.theme.name,
-        values: this.theme.values,
-        modes: this.theme.modes,
+        name: prepared.name,
+        values: prepared.values,
+        modes: prepared.modes,
       });
+      if (prepared !== this.theme) {
+        this.theme = prepared;
+        this.history[this.historyIndex] = cloneTheme(prepared);
+      }
       this.dirty = false;
-      this.notify(`« ${this.theme.name} » enregistré dans Home Assistant.`);
+      this.notify(`« ${prepared.name} » enregistré dans Home Assistant.`);
     } catch (error) {
       this.notify(error instanceof Error ? error.message : "Enregistrement impossible.", true);
     }
@@ -410,7 +428,7 @@ export class HAThemeBuilderPanel extends LitElement {
         <button class="icon-button menu-button" title="Ouvrir l’éditeur" @click=${() => { this.editorOpen = !this.editorOpen; }}>${icon("menu")}</button>
         <div class="brand"><div class="brand-mark">${icon("palette", 21)}</div><div class="brand-copy"><strong>Theme Builder</strong><span>Home Assistant</span></div></div>
         <div class="divider"></div>
-        <input class="theme-name" aria-label="Nom du thème" .value=${this.theme.name} @change=${(event: Event) => { const next = cloneTheme(this.theme); next.name = (event.target as HTMLInputElement).value; this.commit(next); }} />
+        <input class="theme-name" aria-label="Nom du thème" .value=${this.theme.name} @change=${(event: Event) => { const next = cloneTheme(this.theme); next.name = (event.target as HTMLInputElement).value; this.commit(syncCardModThemeName(next)); }} />
         ${this.dirty ? html`<span class="dirty-badge" title="Modifications non enregistrées"></span>` : nothing}
         <div class="top-spacer"></div>
         ${!this.hass ? html`<span class="demo-pill">Aperçu local</span>` : nothing}
@@ -433,6 +451,7 @@ export class HAThemeBuilderPanel extends LitElement {
     const group = THEME_GROUPS.find((item) => item.id === this.selectedGroup) ?? THEME_GROUPS[0];
     const definitions = this.visibleDefinitions;
     const expertTotal = this.expert ? this.expertDefinitions.length : definitions.length;
+    const sectionBackgroundBlur = hasSectionBackgroundBlur(this.theme);
     return html`
       <aside class=${`editor ${this.editorOpen ? "open" : ""}`}>
         <div class="editor-head">
@@ -446,6 +465,15 @@ export class HAThemeBuilderPanel extends LitElement {
             <button class=${`experience-button ${!this.expert ? "active" : ""}`} @click=${() => this.setExpert(false)}>${icon("sparkles", 15)} Visuel</button>
             <button class=${`experience-button ${this.expert ? "active" : ""}`} @click=${() => this.setExpert(true)}>${icon("settings", 15)} Expert</button>
           </div>
+          <label class=${`feature-option ${sectionBackgroundBlur ? "active" : ""}`}>
+            <input type="checkbox" .checked=${sectionBackgroundBlur} @change=${this.toggleSectionBackgroundBlur} />
+            <span class="feature-switch" aria-hidden="true"></span>
+            <span class="feature-copy">
+              <strong>Flouter le fond des sections</strong>
+              <small>Ajout automatique au thème enregistré</small>
+            </span>
+            <span class="dependency-badge">Card Mod requis</span>
+          </label>
           ${this.expert ? html`
             <div class="search-row expert-search-row">
               <label class="search">${icon("search", 16)}<input type="search" placeholder="Rechercher parmi toutes les variables…" .value=${this.query} @input=${(event: Event) => { this.query = (event.target as HTMLInputElement).value; this.expertLimit = EXPERT_PAGE_SIZE; }} /></label>
