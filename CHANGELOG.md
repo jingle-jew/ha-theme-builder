@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.11 — 2026-09-01
+
+- Rétablissement du flou inconditionnel sur toutes les sections afin de conserver la compatibilité Safari et Chromium.
+- Migration automatique de la règle conditionnelle générée par la version 0.1.10 lors du prochain enregistrement du thème.
+
 ## 0.1.10 — 2026-09-01
 
 - Le flou des sections est maintenant limité aux conteneurs portant la classe native `.has-background`; une section sans couleur de fond configurée reste entièrement transparente.

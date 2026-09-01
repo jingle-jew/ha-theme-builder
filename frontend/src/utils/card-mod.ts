@@ -14,7 +14,7 @@ const SECTION_BLUR_STYLE = `${SECTION_BLUR_CSS_START}
   position: relative;
 }
 
-:host-context(.has-background)::before {
+:host::before {
   content: "";
   position: absolute;
   inset: calc(-1 * var(--ha-space-2, 8px));
@@ -67,7 +67,7 @@ export function syncCardModThemeName(theme: ThemeDocument): ThemeDocument {
   const generatedViewStyle = theme.values[CARD_MOD_VIEW_YAML_KEY] ?? "";
   const needsMigration = generatedViewStyle.includes(SECTION_BLUR_YAML_START)
     || (generatedGridStyle.includes(SECTION_BLUR_CSS_START)
-      && !generatedGridStyle.includes(":host-context(.has-background)::before"));
+      && !generatedGridStyle.includes(":host::before"));
   if (theme.values[CARD_MOD_THEME_KEY] === expectedName && !needsMigration) return theme;
   if (needsMigration) return setSectionBackgroundBlur(theme, true);
   const next = cloneTheme(theme);
