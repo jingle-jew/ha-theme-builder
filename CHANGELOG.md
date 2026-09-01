@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.8 — 2026-09-01
+
+- Le flou cible directement `:host` dans `card-mod-grid-section`, un point d’injection confirmé fonctionnel avec Card Mod 4.2.1.
+- Migration automatique des règles générées par les versions 0.1.6 et 0.1.7 lors du prochain enregistrement du thème.
+
 ## 0.1.7 — 2026-09-01
 
 - Correction du flou des sections : la règle cible maintenant `.section` dans le Shadow DOM de `hui-sections-view` via `card-mod-view-yaml`.
